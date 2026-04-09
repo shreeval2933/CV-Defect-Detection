@@ -38,6 +38,11 @@ pip install -r requirements.txt
 
 ## Dataset Layout
 
+### Option 1: Bundled Dataset (Recommended)
+You can download the pre-packaged dataset (including both MVTec categories and AITEX) directly from the project release:
+*   **[Download data.zip](https://github.com/shreeval2933/CV-Defect-Detection/releases/download/v1.0.0/data.zip)**
+
+### Option 2: Manual Collection
 **MVTec** (download from https://www.mvtec.com/company/research/datasets/mvtec-ad):
 ```
 data/mvtec/
