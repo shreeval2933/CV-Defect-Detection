@@ -1,128 +1,192 @@
-# CV Defect Detection – Domain Adversarial Training
+# Cross-Domain Defect Detection using Domain Adaptation
 
-**Multi‑domain industrial defect detection** featuring:
-- **Domain Adversarial Training (DANN / GRL)** – learns domain‑invariant features
-- **Monte‑Carlo Dropout** – predictive uncertainty estimation
-- **Grad‑CAM (captum)** – visual defect localisation
-- **Cross‑domain evaluation** – train on metal + plastic, test on unseen fabric
-
----
-
-## Project Structure
-
-```
-CV project/
-├── dataset.py          # MVTec + AITEX loaders, class‑balanced sampling
-├── model.py            # Baseline, DANN (arch A), Dual‑branch (arch C), MC‑Dropout
-├── train.py            # Training loop with GRL λ‑scheduling
-├── evaluate.py         # Metrics, MC‑Dropout uncertainty, plotting utilities
-├── gradcam.py          # Grad‑CAM visualisation via Captum
-├── main.py             # CLI entry point – selects architecture & options
-├── requirements.txt    # Python dependencies
-└── plots/              # Generated figures (saved at runtime)
-```
+**Industrial defect detection under domain shift** using:
+- Domain Adversarial Training (GRL / DANN)
+- Exponential Moving Average (EMA) for stable training
+- Monte Carlo Dropout for uncertainty estimation
+- Grad-CAM for visual explainability
 
 ---
 
-## Setup
+## 🧩 Problem Statement
 
+In real-world industrial settings, models trained on one domain often fail on unseen domains.
+
+### Setup:
+- **Train Domain:** Metal + Plastic (MVTec)
+- **Test Domain:** Fabric (AITEX) → unseen domain
+
+👉 This creates a **domain shift problem**, where:
+- Data distributions differ
+- Model generalization degrades
+
+---
+
+## ⚙️ Methods
+
+### 1. Baseline Model
+- ResNet50 classifier
+- Trained only on source domain
+- No domain adaptation
+
+---
+
+### 2. Architecture A (Proposed)
+- Domain Adversarial Neural Network (DANN)
+- Gradient Reversal Layer (GRL)
+- Learns **domain-invariant features**
+
+---
+
+### 3. EMA (Exponential Moving Average)
+- Maintains moving average of weights
+- Used **during evaluation + checkpoint saving**
+- Improves:
+  - stability
+  - generalization
+  - consistency across runs
+
+---
+
+### 4. Additional Components
+- **MC Dropout (T=30)** → predictive uncertainty
+- **Grad-CAM (Captum)** → defect localization
+- **Threshold tuning** → optimal classification
+
+---
+
+## 📊 Final Results (Mean ± Std over 3 runs)
+
+| Model | Accuracy | F1 Score | AUROC |
+|------|---------|---------|-------|
+| Baseline | 0.569 ± 0.028 | 0.473 ± 0.028 | 0.495 ± 0.034 |
+| **Arch A (EMA)** | **0.628 ± 0.016** | **0.646 ± 0.015** | **0.596 ± 0.007** |
+
+---
+
+## 🔥 Key Observations
+
+### 🚀 1. Strong Improvement over Baseline
+- F1 Score:
+  - Baseline → **0.47**
+  - Arch A → **0.65**
+- 👉 ~**37% relative improvement**
+
+---
+
+### 📈 2. Better Class Separation
+- AUROC improved from ~0.50 → ~0.60
+- Model moves from:
+  - ❌ near-random
+  - ✅ meaningful discrimination
+
+---
+
+### 🎯 3. Higher Stability (Very Important)
+
+| Metric | Baseline Std | Arch A Std |
+|-------|-------------|------------|
+| Accuracy | 0.028 | 0.016 |
+| F1 | 0.028 | 0.015 |
+| AUROC | 0.034 | 0.007 |
+
+👉 EMA significantly reduces variance
+
+---
+
+### 🧠 4. Domain Adaptation Works
+- Baseline fails on unseen domain
+- Arch A consistently improves performance
+
+---
+
+### ⚠️ 5. Limitations
+- AUROC still < 0.65 → moderate performance
+- Entropy ~0.68 → model uncertainty remains
+
+---
+
+## 📸 Visual Results
+
+### Included in `plots/`:
+- Confusion Matrix
+- ROC Curve
+- Training Curves
+- Uncertainty Distribution
+- Grad-CAM Visualizations
+
+👉 Grad-CAM shows model focusing on defect regions
+
+---
+
+## ▶️ How to Run
+
+### Train model
 ```bash
-# Create a virtual environment (optional but recommended)
-python -m venv venv && source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
+python main.py --arch a --run_id 1
 ```
 
----
-
-## Dataset Layout
-
-### Option 1: Bundled Dataset (Recommended)
-You can download the pre-packaged dataset (including both MVTec categories and AITEX) directly from the project release:
-*   **[Download data.zip](https://github.com/shreeval2933/CV-Defect-Detection/releases/download/v1.0.0/data.zip)**
-
-### Option 2: Manual Collection
-**MVTec** (download from https://www.mvtec.com/company/research/datasets/mvtec-ad):
-```
-data/mvtec/
-├── metal_nut/
-│   ├── train/good/
-│   └── test/{good, bent, color, ...}/
-└── bottle/
-    ├── train/good/
-    └── test/{good, broken_large, ...}/
-```
-
-**AITEX** (download from https://www.aitex.es/afid/):
-```
-data/aitex/
-├── NODefect_images/   # label 0 (normal)
-└── Defect_images/     # label 1 (defect)
-```
-
-The `dataset.py` loader automatically creates a **ConcatDataset** of the two MVTec categories for training and uses the AITEX dataset for the unseen test domain.
-
----
-
-## Quick Start
-
-All experiments are launched via `main.py`. The most common commands are:
-
+### Evaluate best checkpoint
 ```bash
-# Baseline (no domain adaptation)
-python main.py --arch baseline --epochs 20
-
-# Architecture A – DANN with GRL (warm‑up λ=0 for first 5 epochs)
-python main.py --arch a --epochs 20 --warmup 5
-
-# Architecture C – Dual‑branch + DANN
-python main.py --arch c --epochs 20 --warmup 5
-
-# Enable Grad‑CAM visualisation (requires `--gradcam` flag)
-python main.py --arch a --epochs 20 --gradcam
+python select_best_checkpoint.py --arch a --run_id 1 --gradcam
+python main.py --arch baseline --run_id 1
 ```
 
-The script will:
-1. Build balanced training loaders with per‑sample weights.
-2. Train the selected architecture, printing λ‑schedule, loss, accuracy, F1 and AUROC each epoch.
-3. Save the best model (by AUROC) to `checkpoints/best_model.pth`.
-4. After training, `evaluate.py` is invoked to compute metrics on the unseen fabric domain and generate plots under `plots/`.
+## 📁 Project Structure
+```bash
+CV-Defect-Detection/
+│
+├── dataset.py
+├── model.py
+├── train.py
+├── evaluate.py
+├── gradcam.py
+├── main.py
+├── select_best_checkpoint.py
+│
+├── results/
+│   └── a/run_1/
+│       ├── train/
+│       │   ├── history.json
+│       │   └── train.log
+│       └── evaluate/
+│           ├── eval.log
+│           ├── best.txt
+│           └── checkpoint_eval.json
+│
+├── plots/
+│   └── a/run_1/
+│       ├── confusion_matrix.png
+│       ├── roc_curve.png
+│       ├── training_curves.png
+│       ├── uncertainty.png
+│       └── gradcam/
+│
+├── checkpoints/
+│   └── a/run_1/
+│       └── best_model.pth
+```
 
----
+## 🧠 Key Concepts
+- GRL: Encourages domain-invariant features
+- EMA: Stabilizes training & evaluation
+- MC Dropout: Estimates prediction uncertainty
+- Cross-domain Eval	Tests: Generalization
 
-## Key Concepts
+## 🧾 Conclusion
+Domain adaptation with GRL and EMA significantly improves cross-domain defect detection performance.
+Higher F1 score
+Better AUROC
+Lower variance across runs
+👉 Demonstrates effectiveness of learning domain-invariant representations.
 
-| Component | Description |
-|---|---|
-| **GRL (Gradient Reversal Layer)** | Reverses gradients for the domain classifier, encouraging domain‑invariant features. |
-| **λ‑scheduling** | λ = 0 for the first `warmup` epochs, then follows the DANN exponential schedule. |
-| **MC Dropout** | Performs `T=30` stochastic forward passes at inference to obtain predictive variance & entropy. |
-| **Cross‑domain eval** | Trains on metal + plastic (MVTec) and evaluates on fabric (AITEX) to measure generalisation. |
+## ⚠️ Notes
+Dataset paths are configurable in main.py
+Large checkpoints are excluded from repository
+Only best models are stored for reproducibility
 
----
-
-## Expected Results (approximate)
-
-| Setting | AUROC |
-|---|---|
-| Baseline (no DAT) | ~0.70 |
-| Architecture A (DANN) | ~0.78 |
-| Architecture C (dual‑branch) | ~0.82 |
-
-These numbers are indicative; actual performance depends on hardware, random seed and training duration.
-
----
-
-## Priority Order (from the original plan)
-
-1. ✅ Dataset loading & baseline training
-2. ✅ Domain Adversarial Training (Architecture A)
-3. ✅ Cross‑domain evaluation (fabric test set)
-4. ✅ Uncertainty estimation via MC‑Dropout
-5. ⬜ Dual‑branch Architecture C (if time permits)
-6. ⬜ Grad‑CAM visualisation (if time permits)
-
----
-
-*Feel free to adjust hyper‑parameters (learning rate, batch size, epochs, warm‑up) directly in `main.py` or via the CLI flags.*
+## 📌 Future Work
+Improve AUROC (>0.65)
+Try stronger backbones (EfficientNet, ViT)
+Better domain alignment techniques
+Semi-supervised adaptation
