@@ -121,25 +121,63 @@ def visualize_gradcam(model, image_tensor, device, save_path=None, title="Grad-C
     return heatmap
 
 
-def batch_visualize(model, loader, device, n_samples=6, save_dir="gradcam_outputs"):
-    """Run Grad-CAM on the first n_samples from a DataLoader."""
+def batch_visualize(model, loader, device, n_samples=8, save_dir="gradcam_outputs"):
+    """
+    Improved Grad-CAM:
+    Shows TP, TN, FP, FN cases
+    """
+
     import os
     os.makedirs(save_dir, exist_ok=True)
 
-    preprocess = transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)
-    count = 0
+    model.eval()
+
+    counts = {
+        "TP": 0, "TN": 0,
+        "FP": 0, "FN": 0
+    }
+    max_each = n_samples // 4
 
     for imgs, labels, _ in loader:
+        imgs = imgs.to(device)
+
+        logits, _, _ = model(imgs, lambda_=0.0)
+        probs = torch.softmax(logits, dim=1)
+
         for i in range(imgs.size(0)):
-            if count >= n_samples:
-                return
-            img_t = imgs[i:i+1]
-            label = labels[i].item()
-            label_str = "defect" if label == 1 else "normal"
+
+            gt = labels[i].item()
+            pred = probs[i].argmax().item()
+            conf = probs[i].max().item()
+
+            gt_str   = "defect" if gt == 1 else "normal"
+            pred_str = "defect" if pred == 1 else "normal"
+
+            # classify type
+            if gt == 1 and pred == 1:
+                case = "TP"
+            elif gt == 0 and pred == 0:
+                case = "TN"
+            elif gt == 0 and pred == 1:
+                case = "FP"
+            else:
+                case = "FN"
+
+            if counts[case] >= max_each:
+                continue
+
+            counts[case] += 1
 
             visualize_gradcam(
-                model, img_t, device,
-                save_path=os.path.join(save_dir, f"sample_{count}_{label_str}.png"),
-                title=f"Sample {count} | GT: {label_str}",
+                model,
+                imgs[i:i+1],
+                device,
+                save_path=os.path.join(
+                    save_dir,
+                    f"{case}_GT-{gt_str}_PRED-{pred_str}.png"
+                ),
+                title=f"{case} | GT: {gt_str} | Pred: {pred_str} ({conf:.2f})",
             )
-            count += 1
+
+            if all(v >= max_each for v in counts.values()):
+                return

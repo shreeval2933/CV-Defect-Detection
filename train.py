@@ -2,11 +2,18 @@
 Step 7: Training Strategy
 - Epochs 1-5   : no GRL (lambda=0) – warm up the encoder
 - Epochs 6+    : enable GRL with increasing lambda
-- Total epochs : 20 (practical for 4-5 day deadline)
+- Total epochs : 40 (extended for better convergence)
+
+UPDATED:
+✔ Save ALL checkpoints (for later selection)
+✔ EMA (Exponential Moving Average) for stable evaluation
+✔ Reduced GRL strength (max_lambda=0.1)
+✔ Weight decay increased (better generalization)
 """
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from sklearn.metrics import roc_auc_score, f1_score, accuracy_score
@@ -18,53 +25,130 @@ import os
 # Lambda scheduling for GRL
 # ---------------------------------------------------------------------------
 
-def compute_lambda(epoch, total_epochs, warmup_epochs=5, max_lambda=1.0):
+def compute_lambda(epoch, total_epochs, warmup_epochs=5, max_lambda=0.1):
     """
-    lambda = 0 during warmup, then gradually ramps up using the
-    schedule from the DANN paper.
+    lambda = 0 during warmup, then gradually ramps up
+
+    UPDATED:
+    ✔ Reduced max_lambda → prevents feature destruction
     """
     if epoch < warmup_epochs:
         return 0.0
     progress = (epoch - warmup_epochs) / (total_epochs - warmup_epochs)
-    return max_lambda * (2.0 / (1.0 + np.exp(-10 * progress)) - 1.0)
+    return max_lambda * (2.0 / (1.0 + np.exp(-5 * progress)) - 1.0)
+
+
+# ---------------------------------------------------------------------------
+# EMA (Exponential Moving Average)
+# ---------------------------------------------------------------------------
+
+class EMA:
+    """
+    Maintains moving average of model weights
+
+    WHY:
+    ✔ Smooths noisy updates
+    ✔ Improves generalization
+    ✔ More stable evaluation
+    """
+    def __init__(self, model, decay=0.999):
+        self.decay = decay
+        self.shadow = {}
+
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                self.shadow[name] = param.data.clone()
+
+    def update(self, model):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                self.shadow[name] = (
+                    self.decay * self.shadow[name]
+                    + (1.0 - self.decay) * param.data
+                )
+
+    def apply_shadow(self, model):
+        self.backup = {}
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                self.backup[name] = param.data.clone()
+                param.data = self.shadow[name]
+
+    def restore(self, model):
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                param.data = self.backup[name]
+
+
+# ---------------------------------------------------------------------------
+# FOCAL LOSS
+# ---------------------------------------------------------------------------
+
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1.0, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, logits, targets):
+        ce_loss = F.cross_entropy(logits, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        return (self.alpha * (1 - pt) ** self.gamma * ce_loss).mean()
 
 
 # ---------------------------------------------------------------------------
 # Single training epoch
 # ---------------------------------------------------------------------------
 
-def train_one_epoch(model, loader, optimizer, device, lambda_, use_domain_loss=True):
+def train_one_epoch(model, loader, optimizer, device, lambda_, ema, use_domain_loss=True):
     model.train()
-    task_criterion = nn.CrossEntropyLoss()
+
+    class_weights = torch.tensor([1.0, 2.0]).to(device)
+
+    ce_criterion = nn.CrossEntropyLoss(weight=class_weights, label_smoothing=0.1)
+    focal_criterion = FocalLoss()
     domain_criterion = nn.CrossEntropyLoss()
+
+    alpha = 0.1
 
     total_loss = 0.0
     all_labels, all_preds = [], []
 
     for imgs, labels, domain_ids in loader:
-        imgs      = imgs.to(device)
-        labels    = labels.to(device)
+        imgs       = imgs.to(device)
+        labels     = labels.to(device)
         domain_ids = domain_ids.to(device)
 
         optimizer.zero_grad()
 
         task_out, domain_out, _ = model(imgs, lambda_=lambda_)
 
-        # Task loss (defect detection)
-        task_loss = task_criterion(task_out, labels)
+        ce_loss    = ce_criterion(task_out, labels)
+        focal_loss = focal_criterion(task_out, labels)
+        task_loss  = ce_loss + focal_loss
 
-        # Domain adversarial loss
-        if use_domain_loss and lambda_ > 0:
+        # -------------------------------------------------------------------
+        # SAFE DOMAIN LOSS
+        # -------------------------------------------------------------------
+        if use_domain_loss and lambda_ > 0 and domain_out is not None:
             domain_loss = domain_criterion(domain_out, domain_ids)
-            loss = task_loss + domain_loss
+            loss = task_loss + alpha * domain_loss
         else:
             loss = task_loss
 
         loss.backward()
         optimizer.step()
 
+        # ---------------------------------------------------------------
+        # UPDATED: EMA update after each step
+        # ---------------------------------------------------------------
+        ema.update(model)
+
         total_loss += loss.item()
-        preds = task_out.argmax(dim=1).cpu().numpy()
+
+        probs = torch.softmax(task_out, dim=1)[:, 1]
+        preds = (probs > 0.5).long().cpu().numpy()
+
         all_preds.extend(preds)
         all_labels.extend(labels.cpu().numpy())
 
@@ -73,7 +157,7 @@ def train_one_epoch(model, loader, optimizer, device, lambda_, use_domain_loss=T
 
 
 # ---------------------------------------------------------------------------
-# Evaluation on test set
+# Evaluation
 # ---------------------------------------------------------------------------
 
 @torch.no_grad()
@@ -82,17 +166,19 @@ def evaluate(model, loader, device):
     all_labels, all_preds, all_probs = [], [], []
 
     for imgs, labels, _ in loader:
-        imgs   = imgs.to(device)
+        imgs = imgs.to(device)
         logits, _, _ = model(imgs, lambda_=0.0)
-        probs  = torch.softmax(logits, dim=1)[:, 1]   # prob of defect class
-        preds  = logits.argmax(dim=1).cpu().numpy()
+
+        probs = torch.softmax(logits, dim=1)[:, 1]
+        preds = (probs > 0.5).long().cpu().numpy()
 
         all_probs.extend(probs.cpu().numpy())
         all_preds.extend(preds)
         all_labels.extend(labels.numpy())
 
-    acc   = accuracy_score(all_labels, all_preds)
-    f1    = f1_score(all_labels, all_preds, zero_division=0)
+    acc = accuracy_score(all_labels, all_preds)
+    f1  = f1_score(all_labels, all_preds, zero_division=0)
+
     try:
         auroc = roc_auc_score(all_labels, all_probs)
     except ValueError:
@@ -106,14 +192,11 @@ def evaluate(model, loader, device):
 # ---------------------------------------------------------------------------
 
 def train(model, train_loader, test_loader, config):
-    """
-    config keys:
-        epochs, warmup_epochs, lr, weight_decay, save_dir, device
-    """
-    device       = config["device"]
-    epochs       = config.get("epochs", 20)
-    warmup       = config.get("warmup_epochs", 5)
-    save_dir     = config.get("save_dir", "checkpoints")
+
+    device   = config["device"]
+    epochs   = config.get("epochs", 40)
+    warmup   = config.get("warmup_epochs", 5)
+    save_dir = config.get("save_dir", "checkpoints")
     os.makedirs(save_dir, exist_ok=True)
 
     model.to(device)
@@ -121,11 +204,16 @@ def train(model, train_loader, test_loader, config):
     optimizer = optim.AdamW(
         model.parameters(),
         lr=config.get("lr", 1e-4),
-        weight_decay=config.get("weight_decay", 1e-4),
+        weight_decay=config.get("weight_decay", 5e-4),
     )
+
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-6)
 
-    best_auroc = 0.0
+    # ---------------------------------------------------------------
+    # UPDATED: Initialize EMA
+    # ---------------------------------------------------------------
+    ema = EMA(model, decay=0.999)
+
     history = []
 
     print(f"\n{'='*60}")
@@ -133,15 +221,33 @@ def train(model, train_loader, test_loader, config):
     print(f"{'='*60}\n")
 
     for epoch in range(1, epochs + 1):
+
+        # -----------------------------------------------------------
+        # Freeze backbone initially
+        # -----------------------------------------------------------
+        if hasattr(model, "encoder"):
+            if epoch <= 5:
+                for p in model.encoder.parameters():
+                    p.requires_grad = False
+            else:
+                for p in model.encoder.parameters():
+                    p.requires_grad = True
+
         lambda_ = compute_lambda(epoch, epochs, warmup)
         use_domain = lambda_ > 0
 
         train_loss, train_acc = train_one_epoch(
             model, train_loader, optimizer, device,
-            lambda_=lambda_, use_domain_loss=use_domain
+            lambda_=lambda_, ema=ema, use_domain_loss=use_domain
         )
 
+        # -----------------------------------------------------------
+        # UPDATED: Evaluate EMA weights (not raw model)
+        # -----------------------------------------------------------
+        ema.apply_shadow(model)
         metrics = evaluate(model, test_loader, device)
+        ema.restore(model)
+
         scheduler.step()
 
         history.append({
@@ -152,19 +258,21 @@ def train(model, train_loader, test_loader, config):
             **metrics,
         })
 
-        tag = "GRL ON " if use_domain else "warmup"
         print(
-            f"[{epoch:02d}/{epochs}] [{tag}] λ={lambda_:.3f} | "
+            f"[{epoch:02d}/{epochs}] λ={lambda_:.3f} | "
             f"loss={train_loss:.4f} acc={train_acc:.3f} | "
             f"test acc={metrics['accuracy']:.3f} f1={metrics['f1']:.3f} auroc={metrics['auroc']:.3f}"
         )
 
-        # Save best model
-        if metrics["auroc"] > best_auroc:
-            best_auroc = metrics["auroc"]
-            ckpt_path = os.path.join(save_dir, "best_model.pth")
-            torch.save(model.state_dict(), ckpt_path)
-            print(f"    ✅ Saved best model (AUROC={best_auroc:.4f})")
+        # -------------------------------------------------------------------
+        # UPDATED: Save ALL checkpoints in structured directory
+        # Save EMA weights instead of raw model
+        # -------------------------------------------------------------------
+        ckpt_path = os.path.join(save_dir, f"epoch_{epoch}.pth")
 
-    print(f"\nTraining complete. Best AUROC: {best_auroc:.4f}")
+        ema.apply_shadow(model)
+        torch.save(model.state_dict(), ckpt_path)
+        ema.restore(model)
+        
+    print("\nTraining complete. All checkpoints saved.")
     return history

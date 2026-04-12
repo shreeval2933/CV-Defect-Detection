@@ -1,0 +1,82 @@
+Run ID: 1
+Architecture: baseline
+Device: cuda
+Train samples: 627 | Test samples: 51
+Trainable params: 24,033,090
+
+============================================================
+Training for 40 epochs | Warmup: 5 epochs
+============================================================
+
+[01/40] λ=0.000 | loss=0.8487 acc=0.502 | test acc=0.431 f1=0.603 auroc=0.534
+[02/40] λ=0.000 | loss=0.8374 acc=0.485 | test acc=0.431 f1=0.603 auroc=0.473
+[03/40] λ=0.000 | loss=0.8103 acc=0.521 | test acc=0.431 f1=0.603 auroc=0.489
+[04/40] λ=0.000 | loss=0.8060 acc=0.495 | test acc=0.431 f1=0.603 auroc=0.513
+[05/40] λ=0.000 | loss=0.7874 acc=0.518 | test acc=0.431 f1=0.603 auroc=0.503
+[06/40] λ=0.028 | loss=0.7475 acc=0.638 | test acc=0.431 f1=0.603 auroc=0.503
+[07/40] λ=0.056 | loss=0.6734 acc=0.714 | test acc=0.431 f1=0.603 auroc=0.534
+[08/40] λ=0.081 | loss=0.5859 acc=0.826 | test acc=0.431 f1=0.603 auroc=0.528
+[09/40] λ=0.103 | loss=0.5063 acc=0.895 | test acc=0.431 f1=0.603 auroc=0.524
+[10/40] λ=0.123 | loss=0.4343 acc=0.901 | test acc=0.431 f1=0.603 auroc=0.531
+[11/40] λ=0.139 | loss=0.3827 acc=0.928 | test acc=0.431 f1=0.603 auroc=0.522
+[12/40] λ=0.152 | loss=0.3772 acc=0.936 | test acc=0.431 f1=0.603 auroc=0.524
+[13/40] λ=0.163 | loss=0.3310 acc=0.951 | test acc=0.431 f1=0.603 auroc=0.539
+[14/40] λ=0.172 | loss=0.2879 acc=0.962 | test acc=0.431 f1=0.603 auroc=0.525
+[15/40] λ=0.178 | loss=0.3198 acc=0.959 | test acc=0.431 f1=0.603 auroc=0.536
+[16/40] λ=0.183 | loss=0.2780 acc=0.977 | test acc=0.431 f1=0.603 auroc=0.539
+[17/40] λ=0.187 | loss=0.2662 acc=0.979 | test acc=0.431 f1=0.603 auroc=0.524
+[18/40] λ=0.190 | loss=0.2616 acc=0.975 | test acc=0.431 f1=0.603 auroc=0.522
+[19/40] λ=0.193 | loss=0.2766 acc=0.967 | test acc=0.431 f1=0.603 auroc=0.495
+[20/40] λ=0.195 | loss=0.2662 acc=0.974 | test acc=0.431 f1=0.603 auroc=0.524
+[21/40] λ=0.196 | loss=0.2523 acc=0.985 | test acc=0.431 f1=0.603 auroc=0.542
+[22/40] λ=0.197 | loss=0.2351 acc=0.992 | test acc=0.451 f1=0.611 auroc=0.525
+[23/40] λ=0.198 | loss=0.2344 acc=0.987 | test acc=0.431 f1=0.603 auroc=0.536
+[24/40] λ=0.198 | loss=0.2378 acc=0.982 | test acc=0.451 f1=0.611 auroc=0.564
+[25/40] λ=0.199 | loss=0.2330 acc=0.992 | test acc=0.451 f1=0.611 auroc=0.583
+[26/40] λ=0.199 | loss=0.2318 acc=0.987 | test acc=0.510 f1=0.638 auroc=0.603
+[27/40] λ=0.199 | loss=0.2489 acc=0.979 | test acc=0.529 f1=0.647 auroc=0.625
+[28/40] λ=0.199 | loss=0.2275 acc=0.995 | test acc=0.431 f1=0.603 auroc=0.528
+[29/40] λ=0.200 | loss=0.2164 acc=0.995 | test acc=0.451 f1=0.611 auroc=0.531
+[30/40] λ=0.200 | loss=0.2259 acc=0.990 | test acc=0.431 f1=0.603 auroc=0.524
+[31/40] λ=0.200 | loss=0.2243 acc=0.995 | test acc=0.431 f1=0.603 auroc=0.470
+[32/40] λ=0.200 | loss=0.2092 acc=0.998 | test acc=0.431 f1=0.603 auroc=0.534
+[33/40] λ=0.200 | loss=0.2165 acc=0.995 | test acc=0.431 f1=0.603 auroc=0.525
+[34/40] λ=0.200 | loss=0.2192 acc=0.993 | test acc=0.431 f1=0.603 auroc=0.489
+[35/40] λ=0.200 | loss=0.2398 acc=0.979 | test acc=0.431 f1=0.603 auroc=0.497
+[36/40] λ=0.200 | loss=0.2307 acc=0.990 | test acc=0.451 f1=0.611 auroc=0.528
+[37/40] λ=0.200 | loss=0.2226 acc=0.997 | test acc=0.431 f1=0.603 auroc=0.461
+[38/40] λ=0.200 | loss=0.2313 acc=0.988 | test acc=0.490 f1=0.618 auroc=0.550
+[39/40] λ=0.200 | loss=0.2123 acc=1.000 | test acc=0.431 f1=0.592 auroc=0.527
+[40/40] λ=0.200 | loss=0.2329 acc=0.984 | test acc=0.431 f1=0.603 auroc=0.495
+
+Training complete. All checkpoints saved.
+
+==================================================
+CROSS-DOMAIN EVALUATION RESULTS
+==================================================
+Accuracy : 0.5294
+F1 Score : 0.3333
+AUROC    : 0.4906
+
+Best Threshold Found       : 0.70
+Mean Variance (uncertainty): 0.0006
+Mean Entropy               : 0.6165
+
+Classification Report:
+              precision    recall  f1-score   support
+
+      normal       0.57      0.72      0.64        29
+      defect       0.43      0.27      0.33        22
+
+    accuracy                           0.53        51
+   macro avg       0.50      0.50      0.48        51
+weighted avg       0.51      0.53      0.51        51
+
+Saved: plots/baseline/run_1/training_curves.png
+Saved: plots/baseline/run_1/roc_curve.png
+Saved: plots/baseline/run_1/uncertainty.png
+Saved: plots/baseline/run_1/confusion_matrix.png
+
+All plots saved to: plots/baseline/run_1/
+
+Run complete. Logs saved.

@@ -5,7 +5,15 @@ __pycache__/
 
 # Data files
 data/
-checkpoints/
+
+# Ignore GPU storage
+/DATA2/
+/cv_checkpoints/
+
+# Ignore all checkpoints EXCEPT best_model.pth
+checkpoints/*
+!checkpoints/**/
+!checkpoints/**/best_model.pth
 
 # Virtual environment
 venv/

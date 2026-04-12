@@ -1,0 +1,137 @@
+Evaluating ARCH=baseline, RUN=3
+Time: 2026-04-13 02:28:51.291430
+
+
+Evaluating: epoch_1
+Epoch 1 → F1=0.0000, AUROC=0.2633, Score=0.2633
+
+Evaluating: epoch_2
+Epoch 2 → F1=0.0000, AUROC=0.2727, Score=0.2727
+
+Evaluating: epoch_3
+Epoch 3 → F1=0.0000, AUROC=0.2806, Score=0.2806
+
+Evaluating: epoch_4
+Epoch 4 → F1=0.0000, AUROC=0.2915, Score=0.2915
+
+Evaluating: epoch_5
+Epoch 5 → F1=0.0000, AUROC=0.2900, Score=0.2900
+
+Evaluating: epoch_6
+Epoch 6 → F1=0.0000, AUROC=0.3480, Score=0.3480
+
+Evaluating: epoch_7
+Epoch 7 → F1=0.0000, AUROC=0.3182, Score=0.3182
+
+Evaluating: epoch_8
+Epoch 8 → F1=0.0000, AUROC=0.3135, Score=0.3135
+
+Evaluating: epoch_9
+Epoch 9 → F1=0.0000, AUROC=0.3542, Score=0.3542
+
+Evaluating: epoch_10
+Epoch 10 → F1=0.0000, AUROC=0.3464, Score=0.3464
+
+Evaluating: epoch_11
+Epoch 11 → F1=0.0000, AUROC=0.3793, Score=0.3793
+
+Evaluating: epoch_12
+Epoch 12 → F1=0.0000, AUROC=0.3934, Score=0.3934
+
+Evaluating: epoch_13
+Epoch 13 → F1=0.0000, AUROC=0.4044, Score=0.4044
+
+Evaluating: epoch_14
+Epoch 14 → F1=0.0000, AUROC=0.4357, Score=0.4357
+
+Evaluating: epoch_15
+Epoch 15 → F1=0.0000, AUROC=0.4608, Score=0.4608
+
+Evaluating: epoch_16
+Epoch 16 → F1=0.0000, AUROC=0.4498, Score=0.4498
+
+Evaluating: epoch_17
+Epoch 17 → F1=0.0000, AUROC=0.4655, Score=0.4655
+
+Evaluating: epoch_18
+Epoch 18 → F1=0.1538, AUROC=0.5078, Score=0.6617
+
+Evaluating: epoch_19
+Epoch 19 → F1=0.2143, AUROC=0.4922, Score=0.7064
+
+Evaluating: epoch_20
+Epoch 20 → F1=0.2000, AUROC=0.4828, Score=0.6828
+
+Evaluating: epoch_21
+Epoch 21 → F1=0.3750, AUROC=0.4937, Score=0.8687
+
+Evaluating: epoch_22
+Epoch 22 → F1=0.3030, AUROC=0.4639, Score=0.7670
+
+Evaluating: epoch_23
+Epoch 23 → F1=0.3529, AUROC=0.4890, Score=0.8420
+
+Evaluating: epoch_24
+Epoch 24 → F1=0.3429, AUROC=0.4890, Score=0.8319
+
+Evaluating: epoch_25
+Epoch 25 → F1=0.3889, AUROC=0.4655, Score=0.8544
+
+Evaluating: epoch_26
+Epoch 26 → F1=0.3784, AUROC=0.4687, Score=0.8470
+
+Evaluating: epoch_27
+Epoch 27 → F1=0.3784, AUROC=0.4624, Score=0.8408
+
+Evaluating: epoch_28
+Epoch 28 → F1=0.4000, AUROC=0.4545, Score=0.8545
+
+Evaluating: epoch_29
+Epoch 29 → F1=0.3902, AUROC=0.4592, Score=0.8495
+
+Evaluating: epoch_30
+Epoch 30 → F1=0.3902, AUROC=0.4687, Score=0.8589
+
+Evaluating: epoch_31
+Epoch 31 → F1=0.4651, AUROC=0.4577, Score=0.9228
+
+Evaluating: epoch_32
+Epoch 32 → F1=0.4651, AUROC=0.4639, Score=0.9291
+
+Evaluating: epoch_33
+Epoch 33 → F1=0.1481, AUROC=0.4561, Score=0.6043
+
+Evaluating: epoch_34
+Epoch 34 → F1=0.1481, AUROC=0.4702, Score=0.6184
+
+Evaluating: epoch_35
+Epoch 35 → F1=0.4545, AUROC=0.4561, Score=0.9107
+
+Evaluating: epoch_36
+Epoch 36 → F1=0.0000, AUROC=0.4624, Score=0.4624
+
+Evaluating: epoch_37
+Epoch 37 → F1=0.0000, AUROC=0.4483, Score=0.4483
+
+Evaluating: epoch_38
+Epoch 38 → F1=0.2000, AUROC=0.4639, Score=0.6639
+
+Evaluating: epoch_39
+Epoch 39 → F1=0.0000, AUROC=0.4561, Score=0.4561
+
+Evaluating: epoch_40
+Epoch 40 → F1=0.0833, AUROC=0.4577, Score=0.5410
+
+============================================================
+BEST CHECKPOINT
+============================================================
+Epoch: 32
+Score: 0.9291
+
+Saved best model: /DATA2/shrusti/cv_checkpoints/baseline/run_3/best_model.pth
+
+Running Grad-CAM...
+
+Generating plots using BEST model...
+
+Done.

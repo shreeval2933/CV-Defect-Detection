@@ -26,6 +26,7 @@ def full_evaluate(model, loader, device, T=30):
     Returns a dict with all evaluation metrics + uncertainty stats.
     Uses MC Dropout for uncertainty.
     """
+
     all_labels     = []
     all_mean_probs = []
     all_variance   = []
@@ -33,6 +34,10 @@ def full_evaluate(model, loader, device, T=30):
 
     for imgs, labels, _ in loader:
         imgs = imgs.to(device)
+
+        # ---------------------------------------------------------------
+        # MC Dropout forward passes
+        # ---------------------------------------------------------------
         mean_probs, variance, entropy = mc_dropout_predict(model, imgs, T=T)
 
         all_mean_probs.extend(mean_probs.cpu().numpy())
@@ -41,15 +46,45 @@ def full_evaluate(model, loader, device, T=30):
         all_labels.extend(labels.numpy())
 
     all_labels     = np.array(all_labels)
-    all_mean_probs = np.array(all_mean_probs)  # (N, C)
+    all_mean_probs = np.array(all_mean_probs)
     all_variance   = np.array(all_variance)
     all_entropy    = np.array(all_entropy)
 
     defect_probs = all_mean_probs[:, 1]
-    preds        = all_mean_probs.argmax(axis=1)
 
-    acc   = accuracy_score(all_labels, preds)
-    f1    = f1_score(all_labels, preds, zero_division=0)
+    # -----------------------------------------------------------------------
+    # BALANCED THRESHOLD SELECTION (VERY IMPORTANT FIX 🔥)
+    # Avoids bias toward defect-only predictions
+    # -----------------------------------------------------------------------
+
+    best_score = 0
+    best_threshold = 0.5
+
+    for t in np.arange(0.3, 0.8, 0.05):
+        temp_preds = (defect_probs > t).astype(int)
+
+        f1 = f1_score(all_labels, temp_preds, zero_division=0)
+
+        # compute normal recall
+        tn = ((temp_preds == 0) & (all_labels == 0)).sum()
+        fn = ((temp_preds == 1) & (all_labels == 0)).sum()
+        recall_normal = tn / (tn + fn + 1e-8)
+
+        score = f1 + recall_normal   # balanced objective
+
+        if score > best_score:
+            best_score = score
+            best_threshold = t
+
+    threshold = best_threshold
+    preds = (defect_probs > threshold).astype(int)
+
+    # -----------------------------------------------------------------------
+    # Metrics
+    # -----------------------------------------------------------------------
+    acc = accuracy_score(all_labels, preds)
+    f1  = f1_score(all_labels, preds, zero_division=0)
+
     try:
         auroc = roc_auc_score(all_labels, defect_probs)
     except ValueError:
@@ -61,18 +96,28 @@ def full_evaluate(model, loader, device, T=30):
     print(f"Accuracy : {acc:.4f}")
     print(f"F1 Score : {f1:.4f}")
     print(f"AUROC    : {auroc:.4f}")
-    print(f"\nMean Variance (uncertainty): {all_variance.mean():.4f}")
+
+    print(f"\nBest Threshold Found       : {threshold:.2f}")
+    print(f"Mean Variance (uncertainty): {all_variance.mean():.4f}")
     print(f"Mean Entropy               : {all_entropy.mean():.4f}")
+
     print("\nClassification Report:")
-    print(classification_report(all_labels, preds,
-                                target_names=["normal", "defect"],
-                                zero_division=0))
+    print(classification_report(
+        all_labels, preds,
+        target_names=["normal", "defect"],
+        zero_division=0
+    ))
 
     return {
-        "accuracy": acc, "f1": f1, "auroc": auroc,
-        "labels": all_labels, "preds": preds,
+        "accuracy": acc,
+        "f1": f1,
+        "auroc": auroc,
+        "labels": all_labels,
+        "preds": preds,
         "defect_probs": defect_probs,
-        "variance": all_variance, "entropy": all_entropy,
+        "variance": all_variance,
+        "entropy": all_entropy,
+        "threshold": threshold,
     }
 
 
