@@ -204,3 +204,52 @@ def build_dataloaders(mvtec_root, aitex_root, batch_size=32, num_workers=4):
     n_domains = len(DOMAIN_MAP)
     print(f"Train samples: {len(train_dataset)} | Test samples: {len(fabric_test)}")
     return train_loader, test_loader, n_domains
+
+# ---------------------------------------------------------------------------
+# SAME-DOMAIN TEST LOADER (MVTec → MVTec)
+# ---------------------------------------------------------------------------
+
+def build_same_domain_test_loader(mvtec_root, batch_size=32, num_workers=4):
+    """
+    Same-domain evaluation:
+    Train on MVTec → Test on MVTec (held-out split)
+
+    Uses:
+    ✔ 20% unseen split from MVTec (test split)
+    ✔ No retraining needed
+    """
+
+    test_tf = get_test_transforms()
+
+    # Load ONLY test split (remaining 20%)
+    metal_test = MVTecDataset(
+        mvtec_root,
+        category="metal_nut",
+        domain_name="metal",
+        split="test",
+        transform=test_tf
+    )
+
+    plastic_test = MVTecDataset(
+        mvtec_root,
+        category="bottle",
+        domain_name="plastic",
+        split="test",
+        transform=test_tf
+    )
+
+    # Combine both domains
+    test_dataset = ConcatDataset([metal_test, plastic_test])
+
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True
+    )
+
+    print(f"Same-domain test samples: {len(test_dataset)}")
+
+    return test_loader
+    
