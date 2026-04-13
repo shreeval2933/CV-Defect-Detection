@@ -123,13 +123,14 @@ In real-world industrial settings, models trained on one domain often fail on un
 
 ### Train model
 ```bash
-python main.py --arch a --run_id 1
+python main.py --arch a --epochs 40 --lr 5e-5 --run_id 1
+python main.py --arch baseline --epochs 40 --lr 5e-5 --run_id 1
 ```
 
 ### Evaluate best checkpoint
 ```bash
 python select_best_checkpoint.py --arch a --run_id 1 --gradcam
-python main.py --arch baseline --run_id 1
+python select_best_checkpoint.py --arch baseline --run_id 1 --gradcam
 ```
 
 ## 📁 Project Structure
